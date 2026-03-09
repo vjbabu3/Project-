@@ -64,4 +64,4 @@ ai-job-finder/
 Feel free to fork and improve the matching algorithms or add more job platforms!
 
 ---
-*Built with ❤️ by Mr. Vijay*
+*Built with ❤️ by Mr. Vijay and Mr.Ganesh*
