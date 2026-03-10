@@ -4,4 +4,3 @@ beautifulsoup4
 selenium
 webdriver-manager
 pdfminer.six
-pillow==9.5.0
