@@ -13,10 +13,10 @@ def test_imports():
         from job_scraper import get_jobs
         from job_matcher import match_jobs
         from job_applier import auto_apply_jobs, get_application_stats
-        print("✅ All imports successful")
+        print("[OK] All imports successful")
         return True
     except ImportError as e:
-        print(f"❌ Import error: {e}")
+        print(f"[FAIL] Import error: {e}")
         return False
 
 def test_resume_parsing():
@@ -27,27 +27,27 @@ def test_resume_parsing():
         # Check if resume.pdf exists
         if os.path.exists("resume.pdf"):
             skills = extract_skills("resume.pdf")
-            print(f"✅ Resume parsing successful - found skills: {skills}")
+            print(f"[OK] Resume parsing successful - found skills: {skills}")
             return True
         else:
-            print("⚠️  Resume.pdf not found - skipping resume parsing test")
+            print("[WARN] Resume.pdf not found - skipping resume parsing test")
             return True
     except Exception as e:
-        print(f"❌ Resume parsing error: {e}")
+        print(f"[FAIL] Resume parsing error: {e}")
         return False
 
 def test_job_scraping():
     """Test job scraping functionality"""
     try:
         from job_scraper import get_jobs
-        print("🔎 Testing job scraping (this may take a few seconds)...")
+        print("[INFO] Testing job scraping (this may take a few seconds)...")
         jobs = get_jobs()
-        print(f"✅ Job scraping successful - found {len(jobs)} jobs")
+        print(f"[OK] Job scraping successful - found {len(jobs)} jobs")
         if jobs:
             print(f"   Sample job: {jobs[0]['title']} at {jobs[0]['company']} ({jobs[0]['source']})")
         return True
     except Exception as e:
-        print(f"❌ Job scraping error: {e}")
+        print(f"[FAIL] Job scraping error: {e}")
         return False
 
 def test_job_matching():
@@ -59,17 +59,17 @@ def test_job_matching():
         # Get some jobs
         jobs = get_jobs()
         if not jobs:
-            print("⚠️  No jobs found - skipping matching test")
+            print("[WARN] No jobs found - skipping matching test")
             return True
 
         # Test matching with sample skills
         test_skills = ["python", "sql"]
         matched = match_jobs(jobs, test_skills)
 
-        print(f"✅ Job matching successful - matched {len(matched)} jobs with skills: {test_skills}")
+        print(f"[OK] Job matching successful - matched {len(matched)} jobs with skills: {test_skills}")
         return True
     except Exception as e:
-        print(f"❌ Job matching error: {e}")
+        print(f"[FAIL] Job matching error: {e}")
         return False
 
 def test_application_stats():
@@ -78,15 +78,15 @@ def test_application_stats():
         from job_applier import get_application_stats
 
         stats = get_application_stats()
-        print(f"✅ Application stats loaded - {stats['total_applied']} total applications")
+        print(f"[OK] Application stats loaded - {stats['total_applied']} total applications")
         return True
     except Exception as e:
-        print(f"❌ Application stats error: {e}")
+        print(f"[FAIL] Application stats error: {e}")
         return False
 
 def main():
     """Run all tests"""
-    print("🧪 Running AI Job Auto-Applier System Tests")
+    print("=== Running AI Job Auto-Applier System Tests ===")
     print("=" * 50)
 
     tests = [
@@ -101,20 +101,20 @@ def main():
     total = len(tests)
 
     for test_name, test_func in tests:
-        print(f"\n🔍 Testing {test_name}...")
+        print(f"\n[INFO] Testing {test_name}...")
         if test_func():
             passed += 1
         print("-" * 30)
 
-    print(f"\n📊 Test Results: {passed}/{total} tests passed")
+    print(f"\n=== Test Results: {passed}/{total} tests passed ===")
 
     if passed == total:
-        print("🎉 All tests passed! Your AI Job Auto-Applier is ready to use.")
-        print("\n🚀 To start the application:")
+        print("[OK] All tests passed! Your AI Job Auto-Applier is ready to use.")
+        print("\n[INFO] To start the application:")
         print("   streamlit run app.py")
-        print("\n🌐 Then open: http://localhost:8501")
+        print("\n[INFO] Then open: http://localhost:8501")
     else:
-        print("⚠️  Some tests failed. Please check the error messages above.")
+        print("[WARN] Some tests failed. Please check the error messages above.")
 
     return passed == total
 

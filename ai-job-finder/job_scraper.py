@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import urllib.parse
+import re
+import json
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
@@ -51,8 +53,61 @@ def get_internshala_jobs(query="data science"):
     
     return jobs
 
+def parse_naukri_url(url):
+    """Extract job title and company from a hyphenated Naukri job listing URL"""
+    try:
+        match = re.search(r'job-listings-([a-z0-9-]+)$', url)
+        if not match:
+            return "Job Position", "Naukri Recruiter"
+        
+        slug = match.group(1)
+        slug = re.sub(r'-\d+$', '', slug)
+        slug = re.sub(r'-\d+-to-\d+-years?$', '', slug)
+        
+        ignore_words = {
+            'bengaluru', 'bangalore', 'pune', 'mumbai', 'chennai', 'hyderabad', 'delhi', 'noida', 'gurgaon', 'kolkata', 'all', 'areas', 'india',
+            'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+            'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+            'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+            'on', 'at', 'by', 'of', 'in', 'to', 'for', 'with', 'and', 'interview'
+        }
+        
+        common_title_words = {'developer', 'engineer', 'manager', 'assistant', 'representative', 'executive', 'analyst', 'specialist', 'support', 'officer', 'rm', 'associate', 'consultant', 'lead', 'senior', 'junior', 'hiring', 'co', 'hana', 'professional', 'intern', 'internship', 'trainee', 'sales'}
+        
+        words = slug.split('-')
+        cleaned_words = []
+        for w in words:
+            if w in ignore_words:
+                continue
+            if re.match(r'^\d+(st|nd|rd|th)?$', w):
+                continue
+            cleaned_words.append(w)
+            
+        company_start_idx = len(cleaned_words)
+        for i in range(len(cleaned_words) - 1, -1, -1):
+            if cleaned_words[i] not in common_title_words:
+                company_start_idx = i
+                while company_start_idx > 0 and cleaned_words[company_start_idx - 1] not in common_title_words:
+                    company_start_idx -= 1
+                break
+                
+        if company_start_idx < len(cleaned_words):
+            title = " ".join(cleaned_words[:company_start_idx]).title()
+            company = " ".join(cleaned_words[company_start_idx:]).title()
+        else:
+            title = " ".join(cleaned_words).title()
+            company = "Naukri Recruiter"
+            
+        if not title:
+            title = company
+            company = "Naukri Recruiter"
+            
+        return title, company
+    except Exception:
+        return "Job Position", "Naukri Recruiter"
+
 def get_naukri_jobs(query="data science"):
-    """Scrape jobs from Naukri"""
+    """Scrape jobs from Naukri using JSON-LD schema parsing"""
     jobs = []
     try:
         # Naukri is very sensitive. Using a more specialized header.
@@ -72,26 +127,26 @@ def get_naukri_jobs(query="data science"):
         
         soup = BeautifulSoup(response.text, "html.parser")
         
-        # Naukri uses 'jobTuple' and newer classes like 'cust-job-tuple'
-        job_cards = soup.select(".jobTuple, .cust-job-tuple, article")
-        
-        for card in job_cards:
-            title_tag = card.select_one(".title, .jobTitle, h2")
-            company_tag = card.select_one(".companyName, .subTitle")
-            
-            title = title_tag.text.strip() if title_tag else None
-            company = company_tag.text.strip() if company_tag else None
-            
-            link_tag = card.find("a", href=True)
-            job_url = link_tag.get("href") if link_tag else None
-            
-            if title and company:
-                jobs.append({
-                    "title": title,
-                    "company": company,
-                    "source": "Naukri",
-                    "url": job_url
-                })
+        # Parse job listings from application/ld+json scripts
+        scripts = soup.find_all("script", type="application/ld+json")
+        for s in scripts:
+            try:
+                data = json.loads(s.string)
+                if data.get("@type") == "ItemList":
+                    items = data.get("itemListElement", [])
+                    for item in items:
+                        job_url = item.get("url")
+                        if job_url:
+                            title, company = parse_naukri_url(job_url)
+                            jobs.append({
+                                "title": title,
+                                "company": company,
+                                "source": "Naukri",
+                                "url": job_url
+                            })
+            except Exception as e:
+                print(f"Error parsing Naukri JSON-LD item: {e}")
+                
     except Exception as e:
         print(f"Naukri scraping error: {e}")
     
@@ -276,13 +331,13 @@ def get_jobs(query="data science"):
             print(f"Attempting source: {name}...")
             jobs = scraper_func(query)
             if jobs:
-                print(f"✅ {name}: Found {len(jobs)} jobs")
+                print(f"[OK] {name}: Found {len(jobs)} jobs")
                 all_jobs.extend(jobs)
             else:
-                print(f"⚠️ {name}: No jobs found or blocked.")
+                print(f"[WARN] {name}: No jobs found or blocked.")
             time.sleep(0.5) 
         except Exception as e:
-            print(f"❌ Error in {name} scraper: {e}")
+            print(f"[ERROR] Error in {name} scraper: {e}")
     
     # Final check for total results
     if not all_jobs:

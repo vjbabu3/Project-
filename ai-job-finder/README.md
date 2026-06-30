@@ -63,5 +63,3 @@ ai-job-finder/
 ## 🤝 Contributing
 Feel free to fork and improve the matching algorithms or add more job platforms!
 
----
-*Built with ❤️ by Mr. Vijay and Mr.Ganesh*
